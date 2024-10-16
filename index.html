@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>필터</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0);
+            padding: 10px;
+            border-radius: 5px;
+            margin-left: 20px;
+        }
+
+        .control-panel button, .control-panel input {
+            display: block;
+            margin: 30px 0;
+            width: 100px;
+            background-color: rgba(255, 255, 255, 0.5); /* Make background transparent */
+            border: none; /* Remove border */
+            font-weight: bold; /* Make text bold */
+            font-size: 14px; /* Keep original size or adjust as needed */
+            mix-blend-mode: ; /* Add inverted effect */
+            color: black; /* Set color to white for blend mode to work */
+            cursor: pointer; /* Change cursor to pointer on hover */
+        }
+
+        .control-panel input {
+            cursor: auto; /* Default cursor for file input */
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <input type="file" id="upload" accept="image/*">
+        <button id="grayscaleBtn">Grayscale</button>
+        <button id="sepiaBtn">Sepia</button>
+        <button id="negativeBtn">Negative</button>
+        <button id="brightnessBtn">Brightness</button>
+        <button id="saveBtn">Save Image</button>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const grayscaleBtn = document.getElementById('grayscaleBtn');
+        const sepiaBtn = document.getElementById('sepiaBtn');
+        const negativeBtn = document.getElementById('negativeBtn');
+        const brightnessBtn = document.getElementById('brightnessBtn');
+        const saveBtn = document.getElementById('saveBtn');
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        upload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const aspectRatio = img.width / img.height;
+                    if ((window.innerWidth / window.innerHeight) > aspectRatio) {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerWidth / aspectRatio;
+                    } else {
+                        canvas.width = window.innerHeight * aspectRatio;
+                        canvas.height = window.innerHeight;
+                    }
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    updateBackground();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function updateBackground() {
+            document.body.style.backgroundImage = `url(${canvas.toDataURL()})`;
+        }
+
+        grayscaleBtn.addEventListener('click', () => {
+            applyFilter(toGrayscale);
+        });
+
+        sepiaBtn.addEventListener('click', () => {
+            applyFilter(toSepia);
+        });
+
+        negativeBtn.addEventListener('click', () => {
+            applyFilter(toNegative);
+        });
+
+        brightnessBtn.addEventListener('click', () => {
+            applyFilter(increaseBrightness);
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'edited-image.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        function applyFilter(filterFunction) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            filterFunction(imageData.data);
+            ctx.putImageData(imageData, 0, 0);
+            updateBackground();
+        }
+
+        function toGrayscale(data) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const avg = 0.299 * r + 0.587 * g + 0.114 * b;
+                data[i] = data[i + 1] = data[i + 2] = avg;
+            }
+        }
+
+        function toSepia(data) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                data[i] = 0.393 * r + 0.769 * g + 0.189 * b;
+                data[i + 1] = 0.349 * r + 0.686 * g + 0.168 * b;
+                data[i + 2] = 0.272 * r + 0.534 * g + 0.131 * b;
+            }
+        }
+
+        function toNegative(data) {
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];
+                data[i + 1] = 255 - data[i + 1];
+                data[i + 2] = 255 - data[i + 2];
+            }
+        }
+
+        function increaseBrightness(data) {
+            const adjustment = 40;
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(data[i] + adjustment, 255);
+                data[i + 1] = Math.min(data[i + 1] + adjustment, 255);
+                data[i + 2] = Math.min(data[i + 2] + adjustment, 255);
+            }
+        }
+    </script>
+</body>
+</html>
